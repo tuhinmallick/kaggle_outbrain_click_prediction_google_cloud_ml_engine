@@ -207,19 +207,16 @@ def main(argv=None):
   if args.cloud:
     pipeline_name = 'DataflowRunner'
     options = {
-        'job_name': ('outbrain-transform-{}'.format(
-            datetime.datetime.now().strftime('%Y%m%d%H%M%S'))),
+        'job_name':
+        f"outbrain-transform-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}",
         'temp_location':
-            os.path.join(args.output_dir, 'tmp'),
+        os.path.join(args.output_dir, 'tmp'),
         'project':
-            args.project_id,
+        args.project_id,
         'max_num_workers':
-            1000,
+        1000,
         'setup_file':
-             os.path.abspath(os.path.join(
-                 os.path.dirname(__file__),
-                 'setup.py')),
-        
+        os.path.abspath(os.path.join(os.path.dirname(__file__), 'setup.py')),
     }
     pipeline_options = beam.pipeline.PipelineOptions(flags=[], **options)
   else:

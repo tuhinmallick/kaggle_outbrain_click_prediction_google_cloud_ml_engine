@@ -163,7 +163,7 @@ def get_feature_columns(model_type, linear_use_crosses, embedding_size_factor):
     event_country = tf.contrib.layers.sparse_column_with_hash_bucket('event_country', hash_bucket_size=300, dtype=tf.int32, combiner="sum")  #222
     event_country_state = tf.contrib.layers.sparse_column_with_hash_bucket('event_country_state', hash_bucket_size=2000, dtype=tf.int32, combiner="sum") #1892
     event_geo_location = tf.contrib.layers.sparse_column_with_hash_bucket('event_geo_location', hash_bucket_size=2500, dtype=tf.int32, combiner="sum") #2273
-    
+
     #Multi-valued categories
     doc_ad_category_id = tf.contrib.layers.sparse_column_with_hash_bucket('doc_ad_category_id', hash_bucket_size=100, dtype=tf.int32, combiner="sum") #90
     doc_ad_topic_id = tf.contrib.layers.sparse_column_with_hash_bucket('doc_ad_topic_id', hash_bucket_size=350, dtype=tf.int32, combiner="sum") #301
@@ -174,20 +174,44 @@ def get_feature_columns(model_type, linear_use_crosses, embedding_size_factor):
 
     float_simple_binned = []
     for name in FLOAT_COLUMNS_SIMPLE_BIN_TRANSFORM:
-      field_name = name 
-      float_simple_binned.append((field_name, tf.contrib.layers.sparse_column_with_integerized_feature(field_name+'_binned', bucket_size=15, dtype=tf.int16, combiner="sum")))
+      field_name = name
+      float_simple_binned.append((
+          field_name,
+          tf.contrib.layers.sparse_column_with_integerized_feature(
+              f'{field_name}_binned',
+              bucket_size=15,
+              dtype=tf.int16,
+              combiner="sum",
+          ),
+      ))
     float_simple_binned_dict = dict(float_simple_binned)
 
     float_log_binned = []
     for name in FLOAT_COLUMNS_LOG_BIN_TRANSFORM:
       field_name = name
-      float_log_binned.append((field_name, tf.contrib.layers.sparse_column_with_integerized_feature(field_name+'_log_binned', bucket_size=15, dtype=tf.int16, combiner="sum")))
+      float_log_binned.append((
+          field_name,
+          tf.contrib.layers.sparse_column_with_integerized_feature(
+              f'{field_name}_log_binned',
+              bucket_size=15,
+              dtype=tf.int16,
+              combiner="sum",
+          ),
+      ))
     float_log_binned_dict = dict(float_log_binned)
 
     int_log_binned = []
     for name in INT_COLUMNS:  
       field_name = name
-      int_log_binned.append((field_name, tf.contrib.layers.sparse_column_with_integerized_feature(field_name+'_log_int', bucket_size=15, dtype=tf.int16, combiner="sum")))
+      int_log_binned.append((
+          field_name,
+          tf.contrib.layers.sparse_column_with_integerized_feature(
+              f'{field_name}_log_int',
+              bucket_size=15,
+              dtype=tf.int16,
+              combiner="sum",
+          ),
+      ))
     int_log_binned_dict = dict(int_log_binned)
 
     # Wide columns 
@@ -235,7 +259,7 @@ def get_feature_columns(model_type, linear_use_crosses, embedding_size_factor):
         wide_columns.append(tf.contrib.layers.crossed_column(interaction, hash_key=HASH_KEY, combiner="sum",
                                hash_bucket_size=bucket_size)
                             )
-      
+
 
   if 'deep' in model_type:
     event_weekend_ohe = tf.contrib.layers.one_hot_column(event_weekend) #0-1
@@ -243,19 +267,19 @@ def get_feature_columns(model_type, linear_use_crosses, embedding_size_factor):
     event_hour_ohe = tf.contrib.layers.one_hot_column(event_hour) #1-6
     event_platform_ohe = tf.contrib.layers.one_hot_column(event_platform) #1-3
     traffic_source_ohe = tf.contrib.layers.one_hot_column(traffic_source) #1-3
-    
-    float_columns_simple = []
-    for name in FLOAT_COLUMNS_SIMPLE_BIN_TRANSFORM:
-      float_columns_simple.append(tf.contrib.layers.real_valued_column(name))
 
-    float_columns_log_01scaled = []
-    for name in FLOAT_COLUMNS_LOG_BIN_TRANSFORM:
-      float_columns_log_01scaled.append(tf.contrib.layers.real_valued_column(name+'_log_01scaled'))
-
-    int_columns_log_01scaled = []
-    for name in INT_COLUMNS:
-      int_columns_log_01scaled.append(tf.contrib.layers.real_valued_column(name+'_log_01scaled'))    
-
+    float_columns_simple = [
+        tf.contrib.layers.real_valued_column(name)
+        for name in FLOAT_COLUMNS_SIMPLE_BIN_TRANSFORM
+    ]
+    float_columns_log_01scaled = [
+        tf.contrib.layers.real_valued_column(f'{name}_log_01scaled')
+        for name in FLOAT_COLUMNS_LOG_BIN_TRANSFORM
+    ]
+    int_columns_log_01scaled = [
+        tf.contrib.layers.real_valued_column(f'{name}_log_01scaled')
+        for name in INT_COLUMNS
+    ]
     deep_columns = [ event_weekend_ohe,
                      user_has_already_viewed_doc_ohe,
                      event_hour_ohe,
@@ -460,7 +484,7 @@ def get_experiment_fn(args):
 
     wide_columns, deep_columns = get_feature_columns(args.model_type, linear_use_crosses, deep_embedding_size_factor)
 
-    
+
     runconfig = tf.contrib.learn.RunConfig()
     cluster = runconfig.cluster_spec
     num_table_shards = max(1, runconfig.num_ps_replicas * 3)
@@ -468,8 +492,8 @@ def get_experiment_fn(args):
                          'worker' in cluster.jobs else 0)
 
 
-    deep_hidden_units = list([int(n) for n in args.deep_hidden_units.split(' ')])
-    
+    deep_hidden_units = [int(n) for n in args.deep_hidden_units.split(' ')]
+        
 
     if args.model_type == WIDE:
 
@@ -495,7 +519,7 @@ def get_experiment_fn(args):
               use_locking=False
             )
           )
-     
+
 
     elif args.model_type == WIDE_N_DEEP:
       estimator = tf.contrib.learn.DNNLinearCombinedClassifier(
