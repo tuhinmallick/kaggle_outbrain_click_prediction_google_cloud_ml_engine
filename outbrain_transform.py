@@ -129,8 +129,7 @@ def make_input_schema(mode=tf.contrib.learn.ModeKeys.TRAIN):
     A `Schema` object.
   """
 
-  result = {}
-  result[LABEL_COLUMN] = tf.FixedLenFeature(shape=[], dtype=tf.int64)
+  result = {LABEL_COLUMN: tf.FixedLenFeature(shape=[], dtype=tf.int64)}
   result[DISPLAY_ID_COLUMN] = tf.FixedLenFeature(shape=[], dtype=tf.float32)
   #result[AD_ID_COLUMN] = tf.VarLenFeature(dtype=tf.float32)
   result[IS_LEAK_COLUMN] = tf.FixedLenFeature(shape=[], dtype=tf.int64)
@@ -140,7 +139,7 @@ def make_input_schema(mode=tf.contrib.learn.ModeKeys.TRAIN):
   #TODO: Create dummy features that indicates whether any of the numeric features is null 
   #(currently default 0 value might introduce noise)
   for name in FLOAT_COLUMNS_LOG_BIN_TRANSFORM+FLOAT_COLUMNS_SIMPLE_BIN_TRANSFORM:
-    result[name] = tf.FixedLenFeature(shape=[], dtype=tf.float32, default_value=0.0)  
+    result[name] = tf.FixedLenFeature(shape=[], dtype=tf.float32, default_value=0.0)
   for name in INT_COLUMNS:
     result[name] = tf.FixedLenFeature(shape=[], dtype=tf.float32, default_value=0.0)
   for name in CATEGORICAL_COLUMNS:
@@ -181,19 +180,29 @@ def make_preprocessing_fn():
 
     #For well-distributed percentages, creating 10 bins
     for name in FLOAT_COLUMNS_SIMPLE_BIN_TRANSFORM:
-      result[name+'_binned'] = tft.map(lambda x: tf.expand_dims(tf.to_int64(x*10), -1), inputs[name])
+      result[f'{name}_binned'] = tft.map(
+          lambda x: tf.expand_dims(tf.to_int64(x * 10), -1), inputs[name])
 
     #For log-distributed percentages, creating bins on log
     for name in FLOAT_COLUMNS_LOG_BIN_TRANSFORM:
-      result[name+'_log_binned'] = tft.map(lambda x: tf.expand_dims(tf.to_int64(tf_log2_1p(x*1000)), -1), inputs[name])
-      result[name+'_log_01scaled'] = tft.scale_to_0_1(tft.map(lambda x: tf.expand_dims(tf_log2_1p(x*1000), -1), inputs[name]))
+      result[f'{name}_log_binned'] = tft.map(
+          lambda x: tf.expand_dims(tf.to_int64(tf_log2_1p(x * 1000)), -1),
+          inputs[name],
+      )
+      result[f'{name}_log_01scaled'] = tft.scale_to_0_1(
+          tft.map(lambda x: tf.expand_dims(tf_log2_1p(x * 1000), -1),
+                  inputs[name]))
 
     #Apply the log to smooth high counts (outliers) and scale from 0 to 1
-    for name in INT_COLUMNS:    
-      result[name+'_log_int']  = tft.map(lambda x: tf.expand_dims(tf.to_int64(tf_log2_1p(x)), -1), inputs[name])
-      result[name+'_log_01scaled'] = tft.scale_to_0_1(tft.map(lambda x: tf.expand_dims(tf_log2_1p(x), -1), inputs[name]))
-      #result[name] = tft.map(lambda x: tf.expand_dims(tf.to_int64(x), -1), inputs[name])
-    
+    for name in INT_COLUMNS:
+      result[f'{name}_log_int'] = tft.map(
+          lambda x: tf.expand_dims(tf.to_int64(tf_log2_1p(x)), -1),
+          inputs[name],
+      )
+      result[f'{name}_log_01scaled'] = tft.scale_to_0_1(
+          tft.map(lambda x: tf.expand_dims(tf_log2_1p(x), -1), inputs[name]))
+          #result[name] = tft.map(lambda x: tf.expand_dims(tf.to_int64(x), -1), inputs[name])
+
     #for name in BOOL_COLUMNS + CATEGORICAL_COLUMNS + \
     #            [category for multicategory in DOC_CATEGORICAL_MULTIVALUED_COLUMNS for category in DOC_CATEGORICAL_MULTIVALUED_COLUMNS[multicategory]]:
     for name in BOOL_COLUMNS + CATEGORICAL_COLUMNS:
